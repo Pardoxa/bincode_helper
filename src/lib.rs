@@ -1,30 +1,16 @@
 use std::{io::{Write, Read}, marker::PhantomData};
 use anyhow::{Result, anyhow, Context};
-use serde::{Serialize, Deserialize, de::DeserializeOwned};
+use serde::{Serialize, de::DeserializeOwned};
 
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Testing
-{
-    a: f64,
-    b: i32
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Testing2
-{
-    bla: Vec<String>
-}
-
-
-pub struct VectorSerialize<W>
+pub struct SerializeAnyhow<W>
 {
     buffer1: Vec<u8>,
     buffer2: Vec<u8>,
     writer: W
 }
 
-impl<W> VectorSerialize<W>
+impl<W> SerializeAnyhow<W>
 {
     pub fn serialize_something<T>(&mut self, something: &T) -> Result<()>
     where T: Serialize,
@@ -64,14 +50,14 @@ impl<W> VectorSerialize<W>
     }
 }
 
-pub struct VecDeserializer<R>
+pub struct DeserializeAnyhow<R>
 {
     buffer1: Vec<u8>,
     buffer2: Vec<u8>,
     reader: R
 }
 
-impl<R> VecDeserializer<R>
+impl<R> DeserializeAnyhow<R>
 where R: Read
 {
     pub fn new(reader: R) -> Self
@@ -138,7 +124,7 @@ where R: Read
 
 struct ReadingIter<'a, R, I>
 {
-    deserializer: &'a mut VecDeserializer<R>,
+    deserializer: &'a mut DeserializeAnyhow<R>,
     item: PhantomData<I>
 }
 
@@ -160,6 +146,7 @@ mod tests {
 
     use std::fs::File;
     use std::io::{BufWriter, BufReader};
+    use serde::Deserialize;
 
     #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
     pub struct Testing
@@ -189,7 +176,7 @@ mod tests {
         let test_file = File::create("Test.bincode").unwrap();
         let buf = BufWriter::new(test_file);
 
-        let mut helper = VectorSerialize::new(buf);
+        let mut helper = SerializeAnyhow::new(buf);
 
         helper.serialize_something(&testa).unwrap();
         helper.serialize_something(&testb).unwrap();
@@ -197,7 +184,7 @@ mod tests {
         drop(helper);
         let file = File::open("Test.bincode").unwrap();
         let reader = BufReader::new(file);
-        let mut de_helper = VecDeserializer::new(reader);
+        let mut de_helper = DeserializeAnyhow::new(reader);
 
         let a: Testing = de_helper.deserialize().unwrap();
         let b: Testing = de_helper.deserialize().unwrap();
