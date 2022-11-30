@@ -1,5 +1,6 @@
 use std::{io::{Write, Read}, marker::PhantomData};
 use anyhow::{Result, anyhow, Context};
+use bincode::Options;
 use serde::{Serialize, de::DeserializeOwned};
 
 
@@ -17,10 +18,12 @@ impl<W> SerializeAnyhow<W>
         W: Write
     {
         self.buffer1.clear();
-        bincode::serialize_into(&mut self.buffer1, something)
+        let options = bincode::DefaultOptions::new();
+        options.serialize_into(&mut self.buffer1, something)
             .with_context(|| "serialization of T")?;
         let size = self.buffer1.len() as u64;
         self.buffer2.clear();
+        
         bincode::serialize_into(&mut self.buffer2, &size)
             .with_context(|| "serialization of len")?;
         let amount = self.writer
@@ -99,8 +102,8 @@ where R: Read
         {
             return Err(anyhow!("size of len wrong. A length of {res} was read, but it should have been a len of {size}"));
         }
-
-        bincode::deserialize(&self.buffer1)
+        let options = bincode::DefaultOptions::new();
+        options.deserialize(&self.buffer1)
             .with_context(|| "Deserialization of T did not succeed")
     }
 
