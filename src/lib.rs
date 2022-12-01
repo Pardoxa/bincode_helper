@@ -26,21 +26,12 @@ impl<W> SerializeAnyhow<W>
         
         bincode::serialize_into(&mut self.buffer2, &size)
             .with_context(|| "serialization of len")?;
-        let amount = self.writer
-            .write(&self.buffer2)
+        self.writer
+            .write_all(&self.buffer2)
             .with_context(|| "error during writing of len")?;
-        if amount != 8 
-        {
-            return Err(anyhow!("Did not write everything - len incomplete"));
-        }
-        let amount2 = self.writer
-            .write(&self.buffer1)
-            .with_context(|| "error during writing some T")?;
-        if amount2 != self.buffer1.len()
-        {
-            return Err(anyhow!("Did not write everything - T incomplete"));
-        }
-        Ok(())
+        self.writer
+            .write_all(&self.buffer1)
+            .with_context(|| "error during writing some T")
     }
 
     pub fn new(writer: W) -> Self
