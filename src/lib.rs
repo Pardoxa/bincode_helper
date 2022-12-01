@@ -68,10 +68,10 @@ where R: Read
     where T: DeserializeOwned
     {
         self.reader.read_exact(&mut self.buffer2)
-            .with_context(|| "reading of len")?;
+            .with_context(|| "during reading of len")?;
 
         let size: u64 = bincode::deserialize(&self.buffer2)
-            .with_context(|| "reading of T")?;
+            .with_context(|| "during deserializing len")?;
         let size = size as usize;
 
         if self.buffer1.len() >= size
@@ -83,7 +83,7 @@ where R: Read
         }
         
         self.reader.read_exact(&mut self.buffer1)
-            .with_context(|| "reading of T")?;
+            .with_context(|| "during reading of T")?;
 
         let options = bincode::DefaultOptions::new();
         options.deserialize(&self.buffer1)
