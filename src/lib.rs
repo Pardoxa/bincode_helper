@@ -1,5 +1,5 @@
 use std::{io::{Write, Read}, marker::PhantomData};
-use anyhow::{Result, anyhow, Context};
+use anyhow::{Result, Context};
 use bincode::Options;
 use serde::{Serialize, de::DeserializeOwned};
 
@@ -67,18 +67,14 @@ where R: Read
     pub fn deserialize<T>(&mut self) -> Result<T>
     where T: DeserializeOwned
     {
-        let res = self.reader.read(&mut self.buffer2)
+        self.reader.read_exact(&mut self.buffer2)
             .with_context(|| "reading of len")?;
-        
-        if res != 8
-        {
-            return Err(anyhow!("size of len wrong. A length of {res} was read, but it should have been a len of 8"));
-        }
+
         let size: u64 = bincode::deserialize(&self.buffer2)
             .with_context(|| "reading of T")?;
         let size = size as usize;
 
-        if self.buffer1.len() > size
+        if self.buffer1.len() >= size
         {
             self.buffer1.truncate(size);
         } else {
@@ -86,13 +82,9 @@ where R: Read
             self.buffer1.extend((0..missing).map(|_| 0));
         }
         
-        
-        let res = self.reader.read(&mut self.buffer1)
+        self.reader.read_exact(&mut self.buffer1)
             .with_context(|| "reading of T")?;
-        if res != size
-        {
-            return Err(anyhow!("size of len wrong. A length of {res} was read, but it should have been a len of {size}"));
-        }
+
         let options = bincode::DefaultOptions::new();
         options.deserialize(&self.buffer1)
             .with_context(|| "Deserialization of T did not succeed")
